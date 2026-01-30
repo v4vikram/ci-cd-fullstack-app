@@ -3,25 +3,26 @@ name: Deploy Backend
 on:
   push:
     branches: [main]
+    paths:
+      - backend/**
   workflow_dispatch:
 
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
-    environment: ci-cd-fullstack   # 👈 THIS IS THE FIX
+    environment: ci-cd-fullstack
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy backend
+      - name: Deploy backend to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           BACKEND_PATH: ${{ secrets.BACKEND_PATH }}
         run: |
-          echo "HOST='${VPS_HOST}'"
-          echo "USER='${VPS_USER}'"
+          set -e
 
           echo "$VPS_SSH_KEY" > key.pem
           chmod 600 key.pem
@@ -35,6 +36,11 @@ jobs:
           rsync -az backend/ \
             -e "ssh -o StrictHostKeyChecking=no -i key.pem" \
             $VPS_USER@$VPS_HOST:$BACKEND_PATH/releases/$TIMESTAMP/
+
+          # 👇 INSTALL DEPENDENCIES ON VPS
+          ssh -o StrictHostKeyChecking=no -i key.pem \
+            $VPS_USER@$VPS_HOST \
+            "cd $BACKEND_PATH/releases/$TIMESTAMP && npm install --production"
 
           ssh -o StrictHostKeyChecking=no -i key.pem \
             $VPS_USER@$VPS_HOST \
