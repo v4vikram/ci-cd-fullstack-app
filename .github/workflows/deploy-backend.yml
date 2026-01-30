@@ -8,6 +8,7 @@ on:
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
+    environment: ci-cd-fullstack   # 👈 THIS IS THE FIX
 
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +22,6 @@ jobs:
         run: |
           echo "HOST='${VPS_HOST}'"
           echo "USER='${VPS_USER}'"
-
-          if [ -z "$VPS_SSH_KEY" ]; then
-            echo "❌ SSH KEY NOT LOADED"
-            exit 1
-          fi
 
           echo "$VPS_SSH_KEY" > key.pem
           chmod 600 key.pem

@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("Mini Fullstack App is running smooth 🚀");
+  res.send("Mini Fullstack App is running 🚀");
 });
 
 app.get("/health", (req, res) => {
