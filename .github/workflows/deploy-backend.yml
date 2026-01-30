@@ -1,4 +1,4 @@
-name: SSH Test
+name: Secret Test
 
 on:
   push:
@@ -6,19 +6,21 @@ on:
       - main
 
 jobs:
-  ssh-test:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH into VPS
+      - name: Check secrets
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
-          echo "$VPS_SSH_KEY" > key.pem
-          chmod 600 key.pem
+          echo "HOST='${VPS_HOST}'"
+          echo "USER='${VPS_USER}'"
 
-          ssh -o StrictHostKeyChecking=no -i key.pem \
-            $VPS_USER@$VPS_HOST \
-            "echo OK"
+          if [ -z "$VPS_SSH_KEY" ]; then
+            echo "SSH_KEY=EMPTY"
+          else
+            echo "SSH_KEY=SET"
+          fi
