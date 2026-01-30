@@ -2,9 +2,10 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - "backend/**"
+      - backend/**
 
 jobs:
   deploy-backend:
@@ -31,23 +32,22 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           BACKEND_PATH: ${{ secrets.BACKEND_PATH }}
         run: |
+          set -e
+
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
           echo "$VPS_SSH_KEY" > key.pem
           chmod 600 key.pem
 
-          # create new release folder
           ssh -o StrictHostKeyChecking=no -i key.pem \
-            $VPS_USER@$VPS_HOST \
-            "mkdir -p $BACKEND_PATH/releases/$TIMESTAMP"
+            ${VPS_USER}@${VPS_HOST} \
+            "mkdir -p ${BACKEND_PATH}/releases/${TIMESTAMP}"
 
-          # upload backend code
           rsync -az --delete \
             backend/ \
-            -e "ssh -i key.pem" \
-            $VPS_USER@$VPS_HOST:$BACKEND_PATH/releases/$TIMESTAMP/
+            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            ${VPS_USER}@${VPS_HOST}:${BACKEND_PATH}/releases/${TIMESTAMP}/
 
-          # switch symlink (atomic)
-          ssh -i key.pem $VPS_USER@$VPS_HOST "
-            ln -sfn $BACKEND_PATH/releases/$TIMESTAMP $BACKEND_PATH/current
-          "
+          ssh -o StrictHostKeyChecking=no -i key.pem \
+            ${VPS_USER}@${VPS_HOST} \
+            "ln -sfn ${BACKEND_PATH}/releases/${TIMESTAMP} ${BACKEND_PATH}/current"
