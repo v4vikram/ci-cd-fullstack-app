@@ -1,26 +1,52 @@
-name: Secret Test
+name: Deploy Backend
 
 on:
   push:
     branches:
       - main
+    paths:
+      - backend/**
 
 jobs:
-  test:
+  deploy-backend:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check secrets
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Deploy backend to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          BACKEND_PATH: ${{ secrets.BACKEND_PATH }}
         run: |
-          echo "HOST='${VPS_HOST}'"
-          echo "USER='${VPS_USER}'"
+          set -e
 
-          if [ -z "$VPS_SSH_KEY" ]; then
-            echo "SSH_KEY=EMPTY"
-          else
-            echo "SSH_KEY=SET"
-          fi
+          echo "$VPS_SSH_KEY" > key.pem
+          chmod 600 key.pem
+
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+          ssh -o StrictHostKeyChecking=no -i key.pem \
+            $VPS_USER@$VPS_HOST \
+            "mkdir -p $BACKEND_PATH/releases/$TIMESTAMP"
+
+          rsync -az backend/ \
+            -e "ssh -o StrictHostKeyChecking=no -i key.pem" \
+            $VPS_USER@$VPS_HOST:$BACKEND_PATH/releases/$TIMESTAMP/
+
+          ssh -o StrictHostKeyChecking=no -i key.pem \
+            $VPS_USER@$VPS_HOST \
+            "ln -sfn $BACKEND_PATH/releases/$TIMESTAMP $BACKEND_PATH/current"
