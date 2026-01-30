@@ -1,53 +1,24 @@
-name: Deploy Backend
+name: SSH Test
 
 on:
   push:
     branches:
       - main
-    paths:
-      - backend/**
 
 jobs:
-  deploy-backend:
+  ssh-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install backend deps
-        run: |
-          cd backend
-          npm install
-
-      - name: Deploy backend to VPS
+      - name: SSH into VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          BACKEND_PATH: ${{ secrets.BACKEND_PATH }}
         run: |
-          set -e
-
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-
           echo "$VPS_SSH_KEY" > key.pem
           chmod 600 key.pem
 
           ssh -o StrictHostKeyChecking=no -i key.pem \
-            ${VPS_USER}@${VPS_HOST} \
-            "mkdir -p ${BACKEND_PATH}/releases/${TIMESTAMP}"
-
-          rsync -az --delete \
-            backend/ \
-            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
-            ${VPS_USER}@${VPS_HOST}:${BACKEND_PATH}/releases/${TIMESTAMP}/
-
-          ssh -o StrictHostKeyChecking=no -i key.pem \
-            ${VPS_USER}@${VPS_HOST} \
-            "ln -sfn ${BACKEND_PATH}/releases/${TIMESTAMP} ${BACKEND_PATH}/current"
+            $VPS_USER@$VPS_HOST \
+            "echo OK"
